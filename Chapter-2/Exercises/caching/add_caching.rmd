@@ -1,0 +1,24 @@
+---
+title: "Caching"
+output: html_document
+---
+
+This is a cached vector of numbers:
+
+```{r norm, cache=TRUE, echo=FALSE} 
+x <- rnorm(10)
+x
+```
+
+This is another cached chunk:
+
+```{r new, cache=TRUE, echo=FALSE, dependson=norm}
+mean(x)
+```
+
+Using kable:
+
+```{r}
+library(knitr)
+kable(head(cars))
+```
