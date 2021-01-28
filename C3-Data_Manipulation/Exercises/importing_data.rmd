@@ -1,0 +1,36 @@
+---
+title: "Exercise 1 - Importing data"
+output: html_document
+---
+
+Exoplanets data set:
+```{r}
+# install.packages("readr")
+library("magrittr")
+library("readr")
+library("dplyr")
+library("tidyr")
+library("ggplot2")
+# airport_data <- read_csv("./C3-Data_Manipulation/Exercises/planets_2021.01.28_02.01.11.csv", comment="#")
+airport_data <- read_csv("./planets_2021.01.28_02.01.11.csv", comment="#")
+airport_data %>% head(20)
+```
+
+## Using `dplyr`
+
+```{r}
+airport_data %>% 
+    group_by(pl_discmethod) %>%
+    select(pl_discmethod) %>% 
+    summarise(observations = n())
+```
+
+## Using `tidyr`
+
+```{r}
+airport_data %>% 
+    gather(key = Attribute, value = Measurement,
+           pl_masse, pl_rade) %>%
+    select(pl_discmethod, Attribute, Measurement) %>%
+    qplot(Attribute, Measurement, geom = "boxplot", facets = . ~ pl_discmethod, data = .)
+```

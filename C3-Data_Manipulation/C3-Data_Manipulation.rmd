@@ -1,0 +1,225 @@
+---
+title: "Chapter 3 -  Data Manipulation"
+output: html_document
+---
+
+## Data Already in R
+
+Run once to import libraries:
+```{r}
+library("ggplot2")
+library("magrittr")
+```
+
+The __Dataset__ package:
+
+```{r}
+library(datasets)
+library(help = "datasets")
+
+data(cars)
+head(cars)
+cars %>% qplot(speed, dist, data = .)
+```
+
+Another package with useful datasets is *mlbench*, it can be installed:
+
+```{r}
+# install.packages("mlbench")
+library(mlbench)
+library(help = "mlbench")
+```
+
+## Quickly Reviewing Data
+
+Function `head()`, shows the first $n$ lines.
+
+```{r}
+cars %>% head(3)
+```
+
+Function `tail()`, shows the last $n$ lines.
+
+```{r}
+cars %>% tail(3)
+```
+
+To get summary statistics for all the columns in a data frame, use the 
+`summary()` function:
+
+```{r}
+cars %>% summary
+```
+
+The Iris dataset:
+
+```{r}
+data(iris)
+iris %>% summary
+```
+
+## Reading data
+
+Reading data in table:
+
+```{r}
+?read.table
+```
+
+## Examples of Reading and Formatting datasets
+
+```{r}
+library(mlbench)
+data(BreastCancer)
+BreastCancer %>% head(3)
+```
+
+## Manipulating Data with `dplyr`
+
+### Some Sueful `dplyr` Functions
+
+```{r}
+# install.packages("dplyr")
+library("dplyr")
+iris %>% as_tibble()
+```
+
+#### select(): Pick Selected Columns and Get Rid of The Rest
+
+```{r}
+iris %>% as_tibble() %>% select(Petal.Width) %>% head(3)
+iris %>% as_tibble() %>% select(Sepal.Length:Petal.Length)
+```
+
+Pick columns based on names:
+
+```{r}
+iris %>% as_tibble() %>% select(starts_with("Petal")) %>% head(3)
+iris %>% as_tibble() %>% select(ends_with("Width")) %>% head(3)
+iris %>% as_tibble() %>% select(contains("etal")) %>% head(3)
+iris %>% as_tibble() %>% select(matches(".t.")) %>% head(3)
+```
+
+#### mutate(): Add computed values to your Data Frame 
+
+The `mutate()` function lets you add a column to your data frame by specifying an expression
+for how to compute it:
+
+```{r}
+iris %>% as_tibble() %>% 
+    mutate(Petal.Width.plus.Length = Petal.Width + Petal.Length) %>%
+    select(Species, Petal.Width.plus.Length) %>%
+    head(3)
+```
+
+You can add more columns than one by specifying them in the `mutate()` function:
+
+```{r}
+iris %>% as_tibble() %>% 
+    mutate(Petal.Width.plus.Length = Petal.Width + Petal.Length,
+           Sepal.Width.plus.Length = Sepal.Width + Sepal.Length) %>%
+    select(Petal.Width.plus.Length, Sepal.Width.plus.Length) %>%
+    head(3)
+```
+
+#### Transmute: Add computed values to your data frame and get rid of all other columns
+
+The `transmute()` function works just like the `mutate()` function, except 
+is combined with a select() so the results is a data frame that on;y contains the new columns you make.
+
+```{r}
+iris %>% as_tibble() %>%
+    transmute(Petal.Width.plus.Length = Petal.Width + Petal.Length) %>%
+    head(3)
+```
+
+#### arrange(): Reorder your data frame by Sorting Columns
+
+The `arrange()` function just reorders the data frame by sorting columns acoording to 
+what specify:
+
+```{r}
+iris %>% as_tibble() %>%
+    arrange(Sepal.Length) %>%
+    head(3)
+```
+
+Decreasing order:
+
+```{r}
+iris %>% as_tibble() %>%
+    arrange(desc(Sepal.Length)) %>%
+    head(3)
+```
+
+#### filter(): Pick selected Rows and Get Rid of the Rest
+
+The `filter()` functions lets you pick out rows based on logical expressions.
+You give the functions a predicate, specifying what a row should satisfy to be included.
+
+```{r}
+iris %>% as_tibble() %>%
+    filter(Sepal.Length > 5) %>%
+    head(3)
+```
+
+More complex logical expressions are accepted:
+
+
+```{r}
+iris %>% as_tibble() %>%
+    filter(Sepal.Length > 5 & Species == "virginica") %>%
+    head(3)
+```
+
+#### group_by(): Split tour Data Into Subtables Based on Column Values 
+The `group_by()` function tells `dplyr` that you want to work on dat separated into different subsets.
+
+```{r}
+iris %>% as_tibble() %>% group_by(Species) %>% head(3)
+```
+
+#### summarise/summarize(): Calculate Summary Statistics
+
+```{r}
+iris %>%
+    summarise(Mean.Petal.Length = mean(Petal.Length),
+              Mean.Sepal.Length = mean(Sepal.Length))
+```
+
+Where this is really powerful is in combination with `group_by()`. There you can split
+the data into different groups and compute the summaries for each group.
+
+```{r}
+iris %>% 
+    group_by(Species) %>%
+    summarise(Mean.Petal.Length = mean(Petal.Length))
+```
+
+`n()` function counts how many observations you have in a subset of your data:
+
+```{r}
+iris %>%
+    summarise(Observation = n())
+```
+
+Again this is more powerful combined with `group_by()`:
+```{r}
+iris %>%
+    group_by(Species) %>%
+    summarise(Number.Of.Species = n())
+```
+
+You can combine summary statistics simply by specifying more than one in the `summary()` function:
+```{r}
+iris %>%
+    group_by(Species) %>%
+    summarise(Number_of_Samples = n(),
+              Mean.Petal.Length = mean(Petal.Length))
+```
+
+
+
+
+
+
