@@ -13,6 +13,9 @@ Resuming: Tidy data means that i can plot or summarize the data efficiently.
 
 Example:
 ```{r}
+library("magrittr")
+library("dplyr")
+library("ggplot2")
 iris %>% select(Species, Petal.Length) %>% head(3)
 ```
 

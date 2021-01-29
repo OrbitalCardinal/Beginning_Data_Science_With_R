@@ -1,0 +1,107 @@
+---
+title: "Chapter 4 - Data Visualization"
+author: "Edson Raul Cepeda Marquez"
+output: html_document
+---
+
+### Basic graphics
+
+The basic plotting system is implemented in the `graphics` package.
+```{r}
+#library(help = "graphics")
+library("magrittr")
+```
+
+The main plotting function is `plot()`
+
+```{r}
+x <- rnorm(50)
+y <- rnorm(50)
+plot(x,y)
+```
+
+The `plot()` function takes a data argument you can use to plot data from a data frame.
+
+```{r}
+data(cars)
+# Wrong: cars %>% plot(speed,dist,data = .)
+cars %$% plot(speed, dist, main = "Cars data",
+              xlab = "Speed", ylab = "Stopping distance")
+```
+
+The data argument `plot()` is used when the variables of the plot are specified as a formula.
+It is combined with a formula that the data parameter of the `plot()` function is used.
+if the $x$ and $y$ values are specified in a formula, you can give the function a data frame that 
+holds the variables and plot from that, as follows:
+
+```{r}
+cars %>% plot(dist ~ speed, data = .)
+```
+
+by default it shows the dat as points, but you can specify a `type` paremeter to display the data in other ways.
+
+```{r}
+cars %$% plot(speed, dist, main = "Cars data", type = "h",
+              xlab = "Speed", ylab = "Stopping distance")
+```
+
+To get a histogram of a single variable, use the function `hist()` instead of `plot()`.
+```{r}
+cars %$% hist(speed)
+```
+
+`plot()` is a *generic* functio it means that it will have different functionality depending on the parameters you give it.
+For example, created with the `lm()` function, has its own plotting routine.
+```{r}
+cars %>% lm(dist ~ speed, data = .) %>% plot
+```
+
+It will five you several summary plots for visualizing the quality of the linear fit.
+**Many model-fitting algorithms return a fitted object that has specialized plotting functionality**.
+
+`lines()` and `points()` functions.
+```{r}
+data(longley)
+longley %>% plot(Unemployed ~ Year, data = ., type = "l") 
+longley %>% lines(Armed.Forces ~ Year, data = ., col = "blue")
+```
+
+Plot function sets y-axis range by itself.
+To manually set the limits of y-axis, `ylim` parameter must be used.
+
+```{r}
+longley %$% plot(Unemployed ~ Year, type = "l",
+                 ylim = range(c(Unemployed, Armed.Forces)))
+longley %>% lines(Armed.Forces ~ Year, data = ., col = "blue")
+```
+
+Like `plot()`, the other plotting funcyions are usually generic.
+This means you can sometimes give them objects such as fitted models.
+The `abline()` function is one such case. It plots lines of the form
+$y = a + bx$, but there is a variant of it that takes a linear model as input
+and plot the best fitting line defined by the model. 
+So you can plot the cars data together with the best-fitted line using the combination
+of the `lm()` and `abline()` functions.
+
+```{r}
+cars %>% plot(dist ~ speed, data = .)
+cars %>% lm(dist ~ speed, data = .) %>% abline(col = "red")
+```
+
+Plotting usually follows this patter.
+First. There is a call to `plot()` that sets up the canvas to plot on,
+possibly adjusting the axes.
+Then. Any additional data points are plotted.
+Finally. There might be some annotation like adding text labels or margin notes.
+(see the `t$ext()` and `mtext()` functions).
+
+If you want to select the shape of points or their color according to the other data features, e.g., plotting
+yo *iris* data with data points in different shapes according to the *Species* variable, you need to map
+features to columns.
+
+```{r}
+shape_map <- c("setosa" = 1,
+               "versicolor" = 2,
+               "virginica" = 4)
+iris %$% plot(Petal.Length ~ Petal.Width, pch = shape_map[Species])
+```
