@@ -11,8 +11,8 @@ library("readr")
 library("dplyr")
 library("tidyr")
 library("ggplot2")
-# airport_data <- read_csv("./C3-Data_Manipulation/Exercises/planets_2021.01.28_02.01.11.csv", comment="#")
-airport_data <- read_csv("./planets_2021.01.28_02.01.11.csv", comment="#")
+airport_data <- read_csv("../../Datasets/planets_2021.01.28_02.01.11.csv", comment="#")
+# airport_data <- read_csv("./planets_2021.01.28_02.01.11.csv", comment="#")
 airport_data %>% head(20)
 ```
 

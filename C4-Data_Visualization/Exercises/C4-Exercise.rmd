@@ -1,0 +1,31 @@
+---
+title: "Chapter 4 - Exercise"
+author:  "Edson Raul Cepeda Marquez"
+output: html_document
+---
+
+Importing libraries:
+```{r}
+library(ggplot2)
+library(magrittr)
+library(readr)
+library(dplyr)
+library(knitr)
+library(tidyr)
+```
+
+```{r}
+planets <- read_csv("../../Datasets/planets_2021.01.28_02.01.11.csv", comment = "#")
+```
+
+```{r}
+planets %>% pivot_longer(c(pl_masse, pl_rade), names_to = "Measurement", values_to = "Value") %>%
+    select(pl_discmethod, Measurement, Value) %>%
+    filter(Value < 6000) %>%
+    ggplot(aes(x = Measurement, y = Value,fill = pl_discmethod)) + 
+    geom_boxplot() + 
+    scale_fill_brewer(palette ="Blues") +
+    geom_jitter(aes(colour = Value)) +
+    facet_grid(. ~ pl_discmethod)
+
+```
