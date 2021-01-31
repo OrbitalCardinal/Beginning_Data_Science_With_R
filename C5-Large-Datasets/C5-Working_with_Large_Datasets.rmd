@@ -4,7 +4,7 @@ output: html_document
 author: "Edson Raul Cepeda Marquez"
 ---
 
-The concepto of *Big Data* to very large datasets. Dealing with Big Data is also part of
+The concept of *Big Data* refers to very large datasets. Dealing with Big Data is also part of
 data science. 
 The science of what you can do with data in a given amount of time, or a given amount of space, is called
 *complexity theory*.
@@ -13,7 +13,7 @@ The science of what you can do with data in a given amount of time, or a given a
 
 You very rarely need to analyze a complete dataset to get a least an idea of how the data behaves.
 You should explore a smaller sample of your data. Here it is important that you pick a random sample.
-If you have a large dataset, and your analysis is being slowed down because of ti, don't be afraid 
+If you have a large dataset, and your analysis is being slowed down because of it, don't be afraid 
 to pick a random subset and analyze that.
 
 You can use the `dplyr` functions `sample_n()` and `sample_frac()` to sample from a data frame. 

@@ -1,0 +1,45 @@
+---
+title: "Chapter 6 - Supervised Learning"
+output: html_document
+author: "Edson Raul Cepeda Marquez"
+---
+
+### Machine Learning
+
+Machine Learning is the discipline of developing and applying models and algorithms for learning from data.
+Machine Learning concerns learning from data, you use a generic algorithm that you feed examples of solutions
+to, and let it learn how to solve the problem from those examples.
+
+### Supervised Learning
+
+Supervised Learning is used when you have variables you want to predict using other variables.
+For the simplest case of supervised learning, we have one response variable, $y$, and one input variable, $x$, and we want to figure out 
+a function, $f$, mapping the input to output, i.e., so that $y=f(x)$.
+What we have to work with is example data of matching $x$ and $y$.
+
+### Regression versus Classification
+
+There are two types of supervised learning: regression and classification. Regression is used when the output variable we try to target is a number.
+Classification is used when we try to target categorical variables.
+
+Take linear regression, $y = \alpha x + \beta$. It is a regression because the variable we are trying to target is a number.
+The parameterized class of functions $f_\theta$, are all lines. If we let $\theta = \theta_1, \theta_0$ and $\alpha = \theta_1, \beta = \theta_0$
+then $y(\theta) = f(x;\theta) = \theta_1 x + \theta_0$. Fitting a linear model consist of finding the best $\theta$, where *best* is defined as the 
+$\theta$ that gets **$y$**$(\theta)$ closes to **$t$**. The distance used in linear regression is the squared Euclidean distance
+
+$$
+|y^{(\theta)} - t|^2 = \sum_{i=1}^n (\theta_1 x_i + \theta_0 - t_i)^2
+$$ .
+
+For an example of classfication, assume that the targets $t_i$ are binary, encoded as 0 and 1, but that the input variables $x_i$ are still real numbers.
+A common way of defininf tha mapping function $f(-;\theta)$ is to let it map $x$ to the unit interval $[0,1]$ and interpret the resulting $y(\theta)$ as 
+the probability that $t$ is 1.
+In a classification setting, you would then predict 0 if $f(x;\theta) < 0.5$ and predict 1 if $f(x;\theta) > 0.5$.
+In linear classification , the function $f_\theta$ could look like this:
+
+$$
+f(x;\theta) = \sigma (\theta_1 x + \theta_0)
+$$
+
+Where $\sigma$ is a sigmoid function (a function mapping $R \rightarrow [0,1]$ that is "S-shaped").
+A common choice of $\sigma$ is the logistic function $\sigma : z \longmapsto \frac{1}{1 + e^{-z'}}$ in which case we call the fitting $f(-;\theta)$ *logistic regression*. 
