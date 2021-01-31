@@ -1,6 +1,12 @@
-ggplot2
-magrittr
-dplyr
-tidyr
-readr
-knitr
+ggplot2 - Plotting package
+magrittr - Data pipelines package
+dplyr - Data frames manipulation package
+    dbplyr - Manipulate databases as dataframes
+tidyr - Tyding data frames package
+readr - Reading files package
+knitr - Document generation with rmakrdown package
+hexbin - Package necessary to plot hex-plots.
+pryr - Memory and size used 
+biglm - Package for linear models for big datasets.
+ff - Package for loading big datasets
+ffbase - For using specialized functions to analyse and fit data in chunks.

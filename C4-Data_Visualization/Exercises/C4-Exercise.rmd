@@ -1,7 +1,7 @@
 ---
 title: "Chapter 4 - Exercise"
 author:  "Edson Raul Cepeda Marquez"
-output: html_document
+output: pdf_document
 ---
 
 Importing libraries:
@@ -16,6 +16,7 @@ library(tidyr)
 
 ```{r}
 planets <- read_csv("../../Datasets/planets_2021.01.28_02.01.11.csv", comment = "#")
+# planets <- read_csv("./Datasets/planets_2021.01.28_02.01.11.csv", comment = "#")
 ```
 
 ```{r}
@@ -26,6 +27,7 @@ planets %>% pivot_longer(c(pl_masse, pl_rade), names_to = "Measurement", values_
     geom_boxplot() + 
     scale_fill_brewer(palette ="Blues") +
     geom_jitter(aes(colour = Value)) +
-    facet_grid(. ~ pl_discmethod)
+    facet_grid(. ~ pl_discmethod) + 
+    scale_y_log10()
 
 ```

@@ -1,0 +1,204 @@
+---
+title: "Chapter 5 - Working with large datasets"
+output: html_document
+author: "Edson Raul Cepeda Marquez"
+---
+
+The concepto of *Big Data* to very large datasets. Dealing with Big Data is also part of
+data science. 
+The science of what you can do with data in a given amount of time, or a given amount of space, is called
+*complexity theory*.
+
+### Subsample your data before you analize the full dataset.
+
+You very rarely need to analyze a complete dataset to get a least an idea of how the data behaves.
+You should explore a smaller sample of your data. Here it is important that you pick a random sample.
+If you have a large dataset, and your analysis is being slowed down because of ti, don't be afraid 
+to pick a random subset and analyze that.
+
+You can use the `dplyr` functions `sample_n()` and `sample_frac()` to sample from a data frame. 
+Use `sample_n()` to get fixed numbers of rows and `sample_frac()` to get a fraction of the data:
+
+```{r}
+library(dplyr)
+library(magrittr)
+
+iris %>% sample_n(size = 5)
+iris %>% sample_frac(size = 0.02)
+```
+
+You need your data in a form `dplyr` can manipulate, and if the data is too large even to load into R, then you cannot have it
+in a data frame to sample from.
+
+Luckily, `dplyr` has support for using data stored on disk rather than in RAM, in various backend formats.
+It is, possible to connect a database to `dplyr` and sample from a large dataset this way.
+
+### Running Out of Memory During Analysis
+
+You can examine memory usage and memory changes using the `pryr` package:
+
+```{r}
+library(pryr)
+mem_change(x <- rnorm(10000))
+```
+
+Modifying this vector:
+
+```{r}
+mem_change(x[1] <- 0)
+```
+
+If we assing vector to another variable, we do not use twice as memory:
+
+```{r}
+mem_change(y <- x)
+```
+
+But then if we modify one vector, we will have to make a copy so the other vector remains the same:
+
+```{r}
+mem_change(x[1] <- 0)
+```
+
+**This is one reason for using pipelines rather than assigning to many variables during analysis**.
+
+You can remove stored data using `rm()` function to free up memory.
+
+### Too large to plot
+
+There are two problems when making scatterplots with a lot of data.
+
+1. If you create files from scatterplots, you will create a plot that contains every single individual point.
+2. With too manypoints, a scatterplot is just not informative.
+
+For example:
+
+```{r}
+d <- data.frame(x = rnorm(10000), y = rnorm(10000))
+```
+
+If the plot is saved as raste graphics instead of PDF, the file will not be too large to watch or print.
+
+```{r}
+library(ggplot2)
+d %>% ggplot(aes(x = x, y = y)) +
+    geom_point()
+```
+
+The solution is to represent points in a way such that they still visible even when there are many overlapping points.
+If the points are overlapping because they actually have the same x- or y-coordinates, you can jitter them.
+
+Another solution to the same problem is plotting the points with alpha levels so each point is partly transparent.
+
+```{r}
+d %>% ggplot(aes(x = x, y = y)) +
+    geom_point(alpha = 0.2)
+```
+
+This doesn't solve the problem of the file size. A scatterplot with transparency is just a way of showing 2D density, though, and you cando that
+directly using the `geom_density_2d()` function:
+
+```{r}
+d %>% ggplot(aes(x = x, y = y)) +
+    geom_density_2d()
+```
+
+An alternative way of showing 2D density is using a so-called hex-plot. 
+This is the 2D equivalent of the histogram. The 2D plane is split into hexagonal bins, and the plot shows the count of points falling into each bin.
+
+```{r}
+d %>% ggplot(aes(x = x, y = y)) +
+    geom_hex()
+```
+
+The colors used by `geom_hex()` are the fill colors, so you can change them using `scale_fill` functions.
+
+You can also combine hex and 2D density plots to get both the bins and contours displayed:
+
+```{r}
+d %>% ggplot(aes(x = x, y = y)) +
+    geom_hex() +
+    scale_fill_gradient(low = "lightgray", high = "red") +
+    geom_density_2d(color = "black")
+```
+
+### Too slow to analyse
+
+When subsampling large datasets is not an option some specialized packages are needed to handle lots of data
+in a linear time.
+One package that both provides a memory efficient linear model fitting (it avoids creating a model matrix that would have rows for each data point and solving equations for that)
+and functionality for updating the model in batches is the `biglm` package:
+
+```{r}
+library(biglm)
+```
+
+You can use it for linear regression using the `biglm()` function instead of `lm()`.
+
+If you are using a data frame format that stores the data on disk and has support for `biglm`, the package will split the data into chunks that it can load into memory and analyse.
+If you don't have  a package that handles this automatically, you can split the data into chunks youself.
+
+As an example we consider the `cars` dataset and try to fit a linear model of stopping distance as a function of speed, and we do it in batches of 10 points.
+Defining the slice indices requires some arithmetic but for that we use the `slice()` function of `dplyr` instead.
+
+We can create a linear model from from the first slice and then update using the following code:
+
+```{r}
+slice_size <- 10
+n <- nrow(cars)
+slice <- cars %>% slice(1:slice_size)
+model <- biglm(dist ~ speed, data = slice)
+for(i in 1:(n/slice_size-1)) {
+    slice <- cars %>% slice((i*slice_size+1):((i+1)*slice_size))
+    model <- update(model, moredata = slice)
+}
+model
+```
+
+### Too large to load
+
+R wants to keep the datra it works on in memory. 
+R uses 32-bit integers for indeices, both positive and negative, so you are limited to indexing around 2 billion data points.
+
+A package to deal with this is the `ff` package.
+It works with the kind of tables we have used so far but uses memory mapped files to represent the data and load data chunks into memory as needed.
+
+```{r}
+library(ff)
+```
+
+It represents data frames as objects of the class `ffdf()`. THis behave just like data frame if you use them as sucj and tou can translate a data frame into a `ffdf` object
+using the `as.ffdf()` function.
+
+Converting cars data into an `ffdf` object:
+
+```{r}
+ffcars <- as.ffdf(cars)
+summary(ffcars)
+```
+
+You can also read from files, for example with the  `read.csv.ffdf()`.
+
+The `ff` package includes various functions for computing summary statistics efficiently from the memory mapped flat files.
+This sometimes doesn't work if the data is too large to fit and load even in a flat file.
+
+So, to deal with data that you cannot load into memory you will have to analyse it in batches.
+This means that you need special function for analysing data, and quite often you need to implement analysis algorithms yourself.
+
+The `bigml` package implement the linear models as generic functions. If you just give them an `ffdf` object, they will treat it as a `data.frame` object and not exploit that
+the data can be fitted in chunks.
+The `ffbase` package deals with this by implementing a special `bigglm()` function that works on `ffdf` object.
+To fit a linear model (or generalized linear), just load the package:
+
+```{r}
+# library(ffbase)
+# x <- as.ffdf(cars)
+# model <- bigglm.ffdf(dist ~ speed, data = x, chunksize = 10)
+# summary(model)
+```
+
+
+
+
+
+

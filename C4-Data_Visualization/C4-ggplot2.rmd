@@ -1,7 +1,7 @@
 ---
 title: "Chapter 4 - The grammar of graphics and the `ggplot2` package"
 author: "Edson Raul Cepeda Marquez"
-output: html_document
+output: word_document
 ---
 
 The *ggplot* package provides an alternative to the basic graphics that is based on what is called the "grammar of graphics".
