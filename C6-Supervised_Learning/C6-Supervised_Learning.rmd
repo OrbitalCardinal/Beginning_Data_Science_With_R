@@ -43,3 +43,133 @@ $$
 
 Where $\sigma$ is a sigmoid function (a function mapping $R \rightarrow [0,1]$ that is "S-shaped").
 A common choice of $\sigma$ is the logistic function $\sigma : z \longmapsto \frac{1}{1 + e^{-z'}}$ in which case we call the fitting $f(-;\theta)$ *logistic regression*. 
+
+#### Linear Regression
+If we take a simple linear regression, $f_\theta = \theta_1 x + \theta_0$, we need the function lm().
+
+For example, considering the speed as the $x$ value and the distance as the $y$ for the *cars* dataset.
+
+```{r}
+library(magrittr)
+library(ggplot2)
+```
+```{r}
+cars %>% head
+```
+
+We can see that there is a very clear linear relation between speed and distance:
+
+```{r}
+cars %>% ggplot(aes(x = speed, y = dist)) +
+    geom_point() +
+    geom_smooth(method = "lm")
+```
+
+`geom_smooth()` will also plot the uncertainty of the fit. This is the gray area in the plot, is the area were the line is likely to be.
+
+To actually fit the data and get information about the fit, we use the `lm()` function with the model specification, `dist ~ speed`, and we can use the `summary()` function to see information about the fit.
+
+```{r}
+cars %>% lm(dist ~ speed, data = .) %>% summary
+```
+
+Or we can use the `coefficients()` function to get the point estimates and the `confint()` function to confidence interval for the parameters.
+
+```{r}
+cars %>% lm(dist ~ speed, data = .) %>% coefficients
+cars %>% lm(dist ~ speed, data = .) %>% confint
+```
+
+Here, (`Intercept`) is $\theta_0$ and `speed` is $\theta_1$.
+
+##### Manually getting the linear regression
+
+Plotting the lines $y = \theta_1 x$ for different choices of $\theta$
+```{r}
+predict_dist <- function(speed, theta_1)
+    data.frame(speed = speed,
+               dist = theta_1 * speed,
+               theta = as.factor(theta_1))
+
+cars %>% ggplot(aes(x = speed, y = dist, colour = theta)) +
+    geom_point(colour = "black") +
+    geom_line(data = predict_dist(cars$speed,2)) +
+    geom_line(data = predict_dist(cars$speed,3)) +
+    geom_line(data = predict_dist(cars$speed,4)) +
+    scale_color_discrete(name=expression(theta[1]))
+
+```
+
+Plotting the error against different choices of $\theta_1$.
+
+```{r}
+thetas <- seq(0,5, length.out = 50)
+fitting_error <- Vectorize(
+    function(theta)
+        sum((theta * cars$speed - cars$dist)**2)
+)
+
+data.frame(thetas = thetas, errors =  fitting_error(thetas)) %>%
+    ggplot(aes(x = thetas, y = errors)) +
+    geom_line() +
+    xlab(expression(theta[1])) + ylab("")
+```
+
+#### Logistic Regression (Classification)
+
+Consider binary clasiffication and logistic regression.
+We can use the breat cancer data from the `mlbench` library and as if the clump thickness has an effect on the risk
+of a tumor being malignant.
+We want to see if we can predict the `Class` variable from the `Cl.thickness` variable.
+
+```{r}
+library(mlbench)
+library(knitr)
+data("BreastCancer")
+BreastCancer %>% head
+```
+
+We can plot the data against the fit. 
+Since the malignant status is either 0 or 1, the points would overlap but if we add a little jitter to the plot we can still se them,
+and if we make them slightly transparent, we can see the density of the points.
+
+```{r}
+BreastCancer %>%
+    ggplot(aes(x = Cl.thickness, y = Class)) +
+    geom_jitter(height = 0.05, width = 0.3, alpha = 0.4)
+```
+
+For classification we still specify the prediction function $y=f(x)$ using the formula `y ~ x`.
+The outcome parameter for `y ~ x` is just binary now.
+
+The breast cancer dataset consider the clump thickness as ordered factors.
+Generally, it is no advisable to directly translate categorical data into numeric data, it is okay in this case.
+Using the function `as.numeric()` will do this.
+Another safer aproach is to first translate the factor into strings and then into numbers.
+
+The second problem is that the `glm()` function expects the response variable to be numerical, coding classes like 0 or 1, 
+while `BreastCancer` data encodes the classes as a factor.
+
+```{r}
+library(dplyr)
+BreastCancer %>%
+    mutate(Cl.thickness.numeric = as.numeric(as.character(Cl.thickness))) %>% 
+    mutate(IsMalignant = ifelse(Class == "benign",0,1)) %>%
+    ggplot(aes(x = Cl.thickness.numeric, y = IsMalignant)) +
+    geom_jitter(height = 0.05, width = 0.3, alpha = 0.4) +
+    geom_smooth(method = "glm",
+                method.args = list(family = "binomial"))
+
+```
+
+To actually get the fitted object, we use `glm()` like we used `lm()` for the linear regression.
+
+```{r}
+BreastCancer %>% 
+    mutate(Cl.thickness.numeric = 
+                as.numeric(as.character(Cl.thickness))) %>%
+    mutate(IsMalignant = ifelse(Class == "benign",0,1)) %>%
+    glm(IsMalignant ~ Cl.thickness.numeric,
+        family = "binomial",
+        data = .)
+```

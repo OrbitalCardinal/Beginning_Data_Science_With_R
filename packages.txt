@@ -10,3 +10,4 @@ pryr - Memory and size used
 biglm - Package for linear models for big datasets.
 ff - Package for loading big datasets
 ffbase - For using specialized functions to analyse and fit data in chunks.
+mlbench - Datasets for machine learning algorithms
