@@ -173,3 +173,167 @@ BreastCancer %>%
         family = "binomial",
         data = .)
 ```
+
+#### Model Matrices and Formula
+
+Most statistical models and machine learning algorithm creates maps not from single value, but form a vector.
+What th elinear model actually sees is a matrix $\mathbf{x}$ considering that the data to fit is  $(\mathbf{x}. \mathbf{t})$,
+so we'll call that $X$.
+This matrix is known as the *model matrix*. 
+
+It has a row per value in $\mathbf{x}$ and it has two columns, on for the intercept and one for the $x$ values.
+
+$$ 
+X =
+\begin{bmatrix}
+1 & x_1 \\
+1 & x_2 \\
+1 & x_3 \\
+\vdots & \vdots \\
+1 & x_n
+\end{bmatrix}
+$$
+
+We can see what mode matrix R generates for a given dataset and formula using
+`model.matrix()` function. For the `cars` data, if we want to fir `dist` versus `speed` we get this:
+
+```{r}
+cars %>%
+    model.matrix(dist ~ speed, data = .) %>%
+    head(5)
+```
+
+For linear regression, the map is a pretty simple one. If we let $\theta = (\theta_0, \theta_1)$ then it is 
+just multiplying that with the model matrix $X$.
+
+$$
+\theta^T X = (\theta_0,\theta_1)
+\begin{bmatrix}
+1 & x_1 \\
+1 & x_2 \\
+1 & x_3 \\
+\vdots & \vdots \\
+1 & x_n
+\end{bmatrix}
+= 
+\begin{bmatrix}
+\theta_0 + \theta_1 x_1 \\
+\theta_0 + \theta_1 x_2 \\
+\theta_0 + \theta_1 x_3 \\
+\vdots \\
+\theta_0 + \theta_1 x_n \\
+\end{bmatrix}
+$$
+
+The combination of formulas and model matrices is a powerful tool for specifying model.
+Since all the algorithms we use for fitting data works on model matrices anyway, there is no reason to hold back on how complex formulas to give them.
+If you want to fit more than one parameter, no problem. You just give write `y ~ x + z` and the model matrix will have three columns.
+
+$$
+X =
+\begin{bmatrix}
+1 & x_1 & z_1 \\
+1 & x_2 & z_2 \\
+1 & x_3 & z_3 \\
+\vdots & \vdots & \vdots \\
+1 & x_n & z_n \\
+\end{bmatrix}
+$$
+
+If we wanted to fit the breast cancer data to both cell thickness and cell size, we can do that just by adding both explanatory variables in the formula.
+
+```{r}
+BreastCancer %>%
+    mutate(Cl.thickness.numeric =
+            as.numeric(as.character(Cl.thickness)),
+           Cell.size.numeric = 
+            as.numeric(as.character(Cell.size))) %>%
+    mutate(IsMalignant = ifelse(Class == "benign",0,1)) %>%
+    model.matrix(IsMalignant ~ Cl.thickness.numeric + Cell.size.numeric,
+                 data = .) %>%
+    head(5)
+```
+
+Then the generalized linear model fitting function will happily work with that:
+
+```{r}
+BreastCancer %>%
+    mutate(Cl.thickness.numeric =
+            as.numeric(as.character(Cl.thickness)),
+           Cell.size.numeric = 
+            as.numeric(as.character(Cell.size))) %>%
+    mutate(IsMalignant = ifelse(Class == "benign",0,1)) %>%
+    glm(IsMalignant ~ Cl.thickness.numeric + Cell.size.numeric,
+        family = "binomial",
+        data = .)
+```
+
+If you want to include interactions between your parameters, you specify that using * instead of +:
+
+```{r}
+BreastCancer %>%
+    mutate(Cl.thickness.numeric =
+            as.numeric(as.character(Cl.thickness)),
+           Cell.size.numeric = 
+            as.numeric(as.character(Cell.size))) %>%
+    mutate(IsMalignant = ifelse(Class == "benign",0,1)) %>%
+    model.matrix(IsMalignant ~ Cl.thickness.numeric * Cell.size.numeric,
+                 data = .) %>%
+    head(5)
+```
+
+If you want to use all the variables in your data excpet the response variable, you can even use the formula `y ~ .` where the `.` wiil give tou all parameters in your data except `y`.
+
+We can transform the data before give it to our learning algorithms. 
+We use a function $\phi$. It is called phi because we call what it produces *features* of our data and the point of it is to pull
+out relevant features of the data to give to the learning algorithm.
+It maps from vectors to vectors, so we can use it to transform each row in your raw data into the rows of the model matrix, whigh we will then call $\phi$ instead of $X$.
+
+$$
+\phi = 
+\begin{bmatrix}
+- \phi (\mathbf{x}_1) - \\
+- \phi (\mathbf{x}_2) - \\
+- \phi (\mathbf{x}_3) - \\
+\cdots \\
+- \phi (\mathbf{x}_n) - \\
+\end{bmatrix}
+$$
+
+To train the `cars`data but fitting a polynomial instead of a line.
+Considering $d$ denotes breaking distance and $s$ the speed, then we want to fit $d = \theta_0 + \theta_1 s + \theta_2 s^2 + \cdots + \theta_n s^n$.
+We'll just do $n=2$ so we want to fit a second-degree polynomial
+The *linear* in linear model refers to the $\theta$ parameters, not the data.
+Now, we just need to map the single $s$ parameter into a vector with different polynomial degrees, so 1 for the intercept, $s$ for the linear component, and $s^2$ for the
+squared component. So $\phi(s) = (1,s,s^2)$.
+We can write that as a formula:
+
+```{r}
+cars %>%
+    model.matrix(dist ~ speed + speed^2, data =.) %>%
+    head
+```
+
+To avoid R interpreting that multiplication as interaction terms we need to specify that `speed^2` term should be interpreted just the way it is.
+We do that using the identity function, I():
+
+```{r}
+cars %>%
+    model.matrix(dist ~ speed + I(speed^2), data = .) %>%
+    head
+```
+
+Now the model has three columns, which is precisely what we want.
+
+```{r}
+cars %>% lm(dist ~ speed + I(speed ^ 2), data = .) %>%
+    summary %>% 
+```
+
+Plotting the model:
+
+```{r}
+cars %>% ggplot(aes(x = speed, y = dist)) +
+    geom_point() +
+    geom_smooth(method = "lm", formula = y ~ x + I(x^2))
+```
