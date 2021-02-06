@@ -32,7 +32,7 @@ $$
 $$ .
 
 For an example of classfication, assume that the targets $t_i$ are binary, encoded as 0 and 1, but that the input variables $x_i$ are still real numbers.
-A common way of defininf tha mapping function $f(-;\theta)$ is to let it map $x$ to the unit interval $[0,1]$ and interpret the resulting $y(\theta)$ as 
+A common way of defining tha mapping function $f(-;\theta)$ is to let it map $x$ to the unit interval $[0,1]$ and interpret the resulting $y(\theta)$ as 
 the probability that $t$ is 1.
 In a classification setting, you would then predict 0 if $f(x;\theta) < 0.5$ and predict 1 if $f(x;\theta) > 0.5$.
 In linear classification , the function $f_\theta$ could look like this:
@@ -327,7 +327,7 @@ Now the model has three columns, which is precisely what we want.
 
 ```{r}
 cars %>% lm(dist ~ speed + I(speed ^ 2), data = .) %>%
-    summary %>% 
+    summary
 ```
 
 Plotting the model:
@@ -337,3 +337,191 @@ cars %>% ggplot(aes(x = speed, y = dist)) +
     geom_point() +
     geom_smooth(method = "lm", formula = y ~ x + I(x^2))
 ```
+
+#### Validating models
+
+Most complext models will always fit the training data better, but they will not necessarily generalize better.
+If i gave a defree that is the same as the number of data points, i can fit the data perfectly. But it will be
+fitting both the systematic relationship between $x$ and $y$ and *also* the statistical errors on our targets $t$.
+It might be utterly useless for predicting point number $n + 1$.
+
+*What i really need to know is whether one or the other model is better at predicting the distance from the speed.*
+
+**We can fit two models and get ther predictions using the `predict()` function. It takes the fitted model as the first 
+argument and data to predict on as the secon:**
+
+```{r}
+line <- cars %>% lm(dist ~ speed, data = .)
+poly <- cars %>% lm(dist ~ speed + I(speed^2), data = .)
+predict(line, cars) %>% head
+predict(poly, cars) %>% head
+```
+
+#### Evaluating Regression Models
+
+To compare two models, we need a measure of how well they fit. Since both models are fitting the squared distances
+from prediction to targets, a fair measure would be looking at the mean squared error.
+
+```{r}
+rmse <- function(x,t) sqrt(mean(sum((t - x)^2)))
+rmse(predict(line, cars), cars$dist)
+rmse(predict(poly, cars), cars$dist)
+```
+
+The polynomial fits slightly better, which it should based on theory, but there is a bit of a cheat here.
+The more complex model might be overfitting the data and capturing statistical noise we don't want it to capture.
+**What we really want to know is how well the model generalizes; how well do the work on data thet haven't already seen 
+and used to fit their parameters?.
+
+To compare models we need to have data that isn't used in the fitting.
+
+We can split the data into two sets, one we use for training and the other we use to test the models.
+There are 50 data points so I can take the first 25 to train my models on and the next 25 to test them on.
+
+```{r}
+training_data <- cars[1:25,]
+test_data <- cars[26:50,]
+
+line <- training_data %>% lm(dist ~ speed, data = .)
+poly <- training_data %>% lm(dist ~ speed + I(speed^2), data = .)
+
+rmse(predict(line, test_data), test_data$dist)
+rmse(predict(poly, test_data), test_data$dist)
+```
+
+The second-degree polynomial is still better, but I am also still cheating. There is more structure in my dataset than just
+the speed and distances. The data frame is sorted according to the distance so the training set has all the short distances and 
+the test data all the long distances. They are not similar. That is not good.
+
+**When you split your data into training and test data, you will want to sample data points randomly**.
+
+We can use the `sample()` function to sample randomly zeros and ones:
+
+```{r}
+sampled_cars <- cars %>%
+    mutate(training = sample(0:1, nrow(cars),replace = TRUE))
+
+sampled_cars %>% head
+```
+
+This will be roughly half the data we get for training, not exatly 50/50 for training and test data, but it is now random:
+
+```{r}
+training_data <- sampled_cars %>% filter(training == 1)
+test_data <- sampled_cars %>% filter(training == 0)
+
+training_data %>% head
+test_data %>% head
+```
+
+Now we get a better estimate of how functions are working:
+
+```{r}
+line <- training_data %>% lm(dist ~ speed, data = .)
+poly <- training_data %>% lm(dist ~ speed + I(speed^2), data = .)
+
+rmse(predict(line,test_data), test_data$dist)
+rmse(predict(poly, test_data), test_data$dist)
+```
+
+#### Evaluating Classification Models
+
+With classification you want to know how many data points are classified correctly and how many are not.
+
+As an example, we can take the breat cancer data and fit the model:
+
+```{r}
+formatted_data <- BreastCancer %>%
+    mutate(Cl.thickness.numeric = 
+            as.numeric(as.character(Cl.thickness)),
+           Cell.size.numeric = 
+            as.numeric(as.character(Cell.size))) %>%
+    mutate(IsMalignant = ifelse(Class == "benign",0,1))
+
+fitted_model <- formatted_data %>%
+    glm(IsMalignant ~ Cl.thickness.numeric +  Cell.size.numeric, data = ., family = "binomial")
+```
+
+We can again use `predict()` to get its prediction.
+By default the model created with `glm()` will be "logit" units, but we can use the `type` parameter to get it in 
+the input unit used with probabilities.
+
+```{r}
+predict(fitted_model, formatted_data, type = "response") %>% head
+```
+
+The natural choice here is to split the probabilities at 50%.
+
+```{r}
+classify <- function(probability) ifelse(probability < 0.5, 0, 1)
+classified_malignant <- classify(predict(fitted_model, formatted_data))
+classified_malignant %>% head
+```
+
+#### Confusion Matrix
+
+If we just put the classification using the `table()` function, as follows:
+
+```{r}
+table(formatted_data$IsMalignant, classified_malignant)
+```
+
+This table, contrasting predictions against true classes, is known as the *confusion matrix*.
+The rows count how many zeros and ones we see in the `formatted_data$IsMalignant` argument and 
+the columns how many zeros and ones we see in the `classified_malignant`argument. So the first
+row is where the data says the tumors *are not* malignant and the second row is where the data says 
+that the tumors *are* malignant.
+
+The first column is where the predictions say the tumors are not malignant while the second column
+is where the predictions say that they are.
+
+This depends on the order of the argument to `table()`, you can provide a parameter, `dnn(dimnames)` 
+to make the table remember it for you.
+
+```{r}
+table(formatted_data$IsMalignant, classified_malignant,
+      dnn=c("Data", "Predictions"))
+```
+
+**The correct predictions are on the diagonal, and the off-diagonal are where our model predicts incorrectly.
+The first element, where the model predict that the tumor is benign and the data agrees, is called *true negatives*. The element to the right of it
+where the model says a tumor is malignant but the data says it is not, is called the *false positives*.
+
+The second row is where the data sayss the tumors are malignant. The first column is where the prediction says
+that it isn't a malignant tumor, and these are called the *false negatives* 
+
+The second column is the cases where both the model and the data says that the tumor is malignant. That is the true positives**.
+
+The classes do not have to be zeros and ones. That was just easier in this particular model where i had to translate the classes into zeros
+and ones for the logistic classification anyway. But really, the classe are "benign" and "malignant".
+
+```{r}
+classify <- function(probability)
+    ifelse(probability < 0.5, "benign", "malignant")
+classified <- classify(predict(fitted_model, formatted_data))
+
+table(formatted_data$Class, classified,
+      dnn=c("Data","Predictions"))
+```
+
+Summaries still will often depend on which clas we consider "positive" and which we consider "negative". so it is always worth a
+thought deciding which you want to call which and definitely something you want to make explicit in any documentation of your anlaysis.
+
+
+#### Accuracy
+
+The simples measure of how well a classification is doing is the *accuracy*. It measures how many classes it gets right out the total, so it is the
+diagonal values of the confusion matrix divided by the toal.
+
+```{r}
+confusion_matrix <- table(formatted_data$Class, classified,
+                          dnn=c("Data","Predictions"))
+
+(accuracy <- sum(diag(confusion_matrix)/ sum(confusion_matrix)))
+```
+
+
+
+
+
+
